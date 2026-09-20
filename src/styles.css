@@ -1,0 +1,596 @@
+:root {
+  --bg: #12141a;
+  --panel: #1c2030;
+  --line: #2e3648;
+  --text: #e8ecf4;
+  --muted: #9aa3b5;
+  --accent: #3d7eff;
+  --danger: #e35d5d;
+  --ok: #3ecf8e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.screen {
+  display: none;
+  height: 100%;
+  width: 100%;
+}
+
+.screen.active {
+  display: block;
+}
+
+#screen-menu.active {
+  display: grid;
+  place-items: center;
+  background: #111;
+  color: #c8c8c8;
+}
+
+.menu {
+  width: min(320px, calc(100vw - 2rem));
+  padding: 0;
+  text-align: left;
+}
+
+.menu h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.menu-label {
+  display: block;
+  margin: 0 0 6px;
+  color: #6e6e6e;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.map-select,
+.locale-select {
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 9px 10px;
+  border-radius: 0;
+  border: 1px solid #2f2f2f;
+  background: transparent;
+  color: #c8c8c8;
+  font: inherit;
+  font-size: 13px;
+}
+
+.map-select:focus,
+.locale-select:focus {
+  outline: none;
+  border-color: #5a5a5a;
+}
+
+.menu-status {
+  min-height: 1rem;
+  margin: 0 0 1.25rem;
+  font-size: 12px;
+  color: #5a5a5a;
+}
+
+.menu-hint {
+  margin: 1.5rem 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #5a5a5a;
+}
+
+.menu-hint code {
+  color: #8a8a8a;
+  font-size: 1em;
+}
+
+.menu-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.menu-actions button {
+  border: 1px solid #2f2f2f;
+  background: transparent;
+  color: #b0b0b0;
+  border-radius: 0;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menu-actions button.primary {
+  background: #e8e8e8;
+  border-color: #e8e8e8;
+  color: #111;
+}
+
+.menu-actions button:hover {
+  border-color: #4a4a4a;
+  color: #e4e4e4;
+  background: #1c1c1c;
+}
+
+.menu-actions button.primary:hover {
+  background: #fff;
+  border-color: #fff;
+  color: #111;
+}
+
+#screen-game {
+  position: relative;
+  background: #000;
+}
+
+#screen-game.active {
+  display: block;
+}
+
+#gameCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: auto;
+}
+
+#hud {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2em;
+  color: #aaa;
+  text-align: center;
+  animation: z 9s;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#title {
+  white-space: nowrap;
+}
+
+#healthBar {
+  position: absolute;
+  left: 1.5rem;
+  bottom: 1.5rem;
+  width: min(280px, 42vw);
+  display: none;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.health-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7fdfe0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+#healthValue {
+  color: #e8ffff;
+  letter-spacing: 0.04em;
+}
+
+.health-track {
+  height: 10px;
+  padding: 2px;
+  border: 1px solid #1a6a72;
+  background: rgba(4, 18, 22, 0.75);
+  box-shadow: 0 0 12px rgba(31, 214, 208, 0.18);
+}
+
+#healthFill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #0e8f8a, #1fd6d0 55%, #9ffff8);
+  box-shadow: 0 0 10px rgba(31, 214, 208, 0.55);
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+#healthBar.low #healthFill {
+  background: linear-gradient(90deg, #8a1a2a, #e35d5d 55%, #ffb0b0);
+  box-shadow: 0 0 10px rgba(227, 93, 93, 0.5);
+}
+
+#healthBar.low .health-label,
+#healthBar.low #healthValue {
+  color: #ff9a9a;
+}
+
+#healthBar.low.b .health-label {
+  animation: q 1s linear infinite;
+}
+
+@keyframes q {
+  50% {
+    opacity: 0;
+  }
+}
+
+.b {
+  animation: q 1s linear infinite;
+}
+
+@keyframes z {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#screen-editor.active {
+  display: grid;
+  grid-template-columns: 240px 1fr 220px;
+  grid-template-rows: 44px 1fr;
+  height: 100%;
+  width: 100%;
+  background: #111;
+  color: #c8c8c8;
+}
+
+#screen-editor header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: #161616;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+#screen-editor header #btnBack {
+  width: auto;
+  margin: 0;
+  padding: 5px 10px;
+}
+
+#screen-editor header h1 {
+  font-size: 13px;
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+#screen-editor aside,
+#screen-editor .side {
+  background: #161616;
+  border-right: 1px solid #2a2a2a;
+  padding: 10px 12px;
+  overflow: auto;
+}
+
+#screen-editor .side {
+  border-right: none;
+  border-left: 1px solid #2a2a2a;
+}
+
+#screen-editor label {
+  display: block;
+  font-size: 11px;
+  color: #6e6e6e;
+  margin: 12px 0 5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+#screen-editor button,
+#screen-editor select,
+#screen-editor input {
+  width: 100%;
+  background: transparent;
+  color: #c8c8c8;
+  border: 1px solid #2f2f2f;
+  border-radius: 0;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 13px;
+}
+
+#screen-editor input:focus,
+#screen-editor select:focus,
+#screen-editor button:focus {
+  outline: none;
+  border-color: #5a5a5a;
+}
+
+#screen-editor button {
+  cursor: pointer;
+  margin-top: 6px;
+  color: #b0b0b0;
+}
+
+#screen-editor button:hover {
+  border-color: #4a4a4a;
+  color: #e4e4e4;
+  background: #1c1c1c;
+}
+
+#screen-editor button.primary {
+  background: #e8e8e8;
+  border-color: #e8e8e8;
+  color: #111;
+}
+
+#screen-editor button.primary:hover {
+  background: #fff;
+  border-color: #fff;
+  color: #111;
+}
+
+#screen-editor button.danger {
+  background: transparent;
+  border-color: #2f2f2f;
+  color: #7a7a7a;
+}
+
+#screen-editor button.danger:hover {
+  border-color: #555;
+  color: #ccc;
+}
+
+#screen-editor .modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+#screen-editor .modes button {
+  margin-top: 0;
+}
+
+#screen-editor .modes button.active {
+  border-color: #c8c8c8;
+  background: #222;
+  color: #f0f0f0;
+}
+
+#editorView {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: #0b0d12;
+}
+
+#editorCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+#screen-editor .hint {
+  font-size: 11px;
+  color: #5a5a5a;
+  line-height: 1.45;
+  margin-top: 14px;
+}
+
+#screen-editor .level-list {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+#screen-editor .level-list button {
+  text-align: left;
+  margin-top: 0;
+}
+
+#screen-editor .level-list button.active {
+  border-color: #c8c8c8;
+  color: #f0f0f0;
+  background: #222;
+}
+
+#screen-editor .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+#screen-editor .header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#screen-editor .header-actions .map-label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+#screen-editor .header-actions select {
+  width: auto;
+  min-width: 160px;
+  margin: 0;
+}
+
+#screen-editor .props-panel {
+  margin: 14px 0;
+  padding-top: 12px;
+  border-top: 1px solid #2a2a2a;
+}
+
+#screen-editor .props-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6e6e6e;
+}
+
+#screen-editor .props-section {
+  margin-bottom: 8px;
+}
+
+#screen-editor .pair-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
+
+#screen-editor .pair-presets button {
+  margin-top: 0;
+  padding: 4px;
+  font-size: 11px;
+}
+
+#screen-editor .validate-list {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  max-height: 120px;
+  overflow: auto;
+}
+
+#screen-editor .validate-list li {
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 4px 0;
+  border-bottom: 1px solid #222;
+  color: #9aa3b5;
+}
+
+#screen-editor .validate-list li.error {
+  color: #e35d5d;
+}
+
+#screen-editor .validate-list li.warn {
+  color: #ffcc66;
+}
+
+#screen-editor .vertex-info {
+  margin: 0;
+  font-size: 12px;
+  color: #9aa3b5;
+}
+
+#screen-editor header #fitLevel {
+  width: auto;
+  margin: 0;
+  padding: 5px 10px;
+}
+
+#screen-editor header #testLevel,
+#screen-editor header #testCampaign {
+  width: auto;
+  margin: 0;
+  padding: 5px 10px;
+}
+
+.dirty-indicator {
+  color: #ffcc66;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.editor-status {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #9aa3b5;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.entity-list {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+  max-height: 120px;
+  overflow: auto;
+}
+
+.entity-list button {
+  text-align: left;
+  margin-top: 0;
+}
+
+.entity-list button.active {
+  border-color: #c8c8c8;
+  color: #f0f0f0;
+  background: #222;
+}
+
+.back-to-editor {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  padding: 8px 14px;
+  border: 1px solid #5a5a5a;
+  background: rgba(0, 0, 0, 0.75);
+  color: #e8e8e8;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.back-to-editor:hover {
+  background: rgba(30, 30, 30, 0.95);
+  border-color: #888;
+}
+
+.minimap {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 160px;
+  height: 110px;
+  border: 1px solid #2a2a2a;
+  background: #0b0d12;
+  cursor: crosshair;
+  z-index: 3;
+}
+
+#screen-editor .layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 12px;
+  color: #9aa3b5;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+#screen-editor .layer-toggle input {
+  width: auto;
+  margin: 0;
+}
+
+#screen-editor #applyGame {
+  margin-bottom: 8px;
+}
+
