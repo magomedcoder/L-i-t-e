@@ -1,4 +1,4 @@
-export type EditorMode = "select" | "region" | "object" | "player"
+export type EditorMode = "select" | "region" | "object" | "player" | "measure"
 
 export type Selection = | { kind: "none" }
   | { kind: "object"; index: number }
@@ -12,6 +12,13 @@ export type DragState = | { kind: "none" }
   | { kind: "player" }
   | { kind: "vertex"; region: number; vertex: number }
   | { kind: "region"; index: number; verts: [number, number][]; startX: number; startY: number }
+  | { kind: "orbit" }
+  | { kind: "flyLook" }
+  | { kind: "heightFloor"; index: number; startZ: number; startClientY: number }
+  | { kind: "heightCeil"; index: number; startZ: number; startClientY: number }
+  | { kind: "object3d"; index: number }
+  | { kind: "vertex3d"; region: number; vertex: number }
+  | { kind: "rotateObject"; index: number }
 
 export const DEFAULT_GRID_STEP = 4
 

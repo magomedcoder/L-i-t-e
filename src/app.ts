@@ -29,8 +29,17 @@ function updateTitle(): void {
 
 updateTitle()
 
-const editor = createEditorScreen({ onBack: () => show("menu") })
-const editorApi = mountEditor(editor, {
+let editorApi: ReturnType<typeof mountEditor>
+
+const editor = createEditorScreen({
+  onBack: () => {
+    if (editorApi && !editorApi.confirmLeave()) {
+      return
+    }
+    show("menu")
+  },
+})
+editorApi = mountEditor(editor, {
   onTest: (campaign) => void startEditorTest(campaign),
 })
 

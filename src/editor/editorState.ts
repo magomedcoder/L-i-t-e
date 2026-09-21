@@ -4,6 +4,7 @@ import { emptyLevel } from "./helpers"
 import { createDefaultViewState, type EditorViewState } from "./state"
 import type { ValidationMarkers } from "./validate"
 import type { DragState, EditorMode, Selection } from "./types"
+import { createMeasureState, type MeasureState } from "./tools/measure"
 
 export type EditorCamera = {
   scale: number
@@ -11,12 +12,15 @@ export type EditorCamera = {
   panY: number
 }
 
-export type EditorClipboard = | { 
+export type EditorClipboard = | {
   kind: "object"
   data: import("../map/levelFormat").LevelObject
-} | { 
+} | {
   kind: "region"
   data: import("../map/levelFormat").LevelRegion
+} | {
+  kind: "objects"
+  data: import("../map/levelFormat").LevelObject[]
 } | null
 
 export type EditorState = {
@@ -25,6 +29,7 @@ export type EditorState = {
   levelIndex: number
   mode: EditorMode
   selection: Selection
+  selectedObjects: number[]
   drag: DragState
   draftVerts: [number, number][]
   camera: EditorCamera
@@ -32,6 +37,9 @@ export type EditorState = {
   clipboard: EditorClipboard
   dirty: boolean
   markers: ValidationMarkers
+  measure: MeasureState
+  previewNeedsRebuild: boolean
+  keys: Set<string>
 }
 
 export function createEditorState(mapId = "default"): EditorState {
@@ -44,6 +52,7 @@ export function createEditorState(mapId = "default"): EditorState {
     levelIndex: 0,
     mode: "select",
     selection: { kind: "none" },
+    selectedObjects: [],
     drag: { kind: "none" },
     draftVerts: [],
     camera: { scale: 2.2, panX: 80, panY: 80 },
@@ -57,6 +66,9 @@ export function createEditorState(mapId = "default"): EditorState {
       goalsWithoutDoor: new Set(),
       doorsWithoutGoal: new Set(),
     },
+    measure: createMeasureState(),
+    previewNeedsRebuild: true,
+    keys: new Set(),
   }
 }
 
@@ -69,9 +81,15 @@ export function editorSnapshot(state: EditorState) {
     campaign: state.campaign,
     levelIndex: state.levelIndex,
     selection: state.selection,
+    selectedObjects: [...state.selectedObjects],
   }
 }
 
 export function clearSelection(state: EditorState): void {
   state.selection = { kind: "none" }
+  state.selectedObjects = []
+}
+
+export function markPreviewDirty(state: EditorState): void {
+  state.previewNeedsRebuild = true
 }

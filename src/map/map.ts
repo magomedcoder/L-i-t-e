@@ -42,6 +42,10 @@ function levelToRegions(level: LevelData): MapPolygon[] {
   ))
 }
 
+export function regionsFromLevel(level: LevelData): MapPolygon[] {
+  return levelToRegions(level)
+}
+
 type SpawnObjectConstructor = new (
   position: Vector,
   thetaOrCount: number,

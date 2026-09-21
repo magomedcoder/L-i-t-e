@@ -5,6 +5,7 @@ import { getLevelBounds } from "./bounds"
 import { nearestEdgeInsert, pickObject, pickPlayer, pickRegion, pickVertex } from "./selection"
 import { snapCoord } from "./types"
 import type { EditorMode } from "./types"
+import { measureAddPoint, formatMeasure } from "./tools/measure"
 
 export function worldFromEvent(e: MouseEvent, canvas: HTMLCanvasElement, camera: EditorCamera, gridStep: number): [number, number] {
   const rect = canvas.getBoundingClientRect()
@@ -94,6 +95,16 @@ export function bindCanvasInput(host: CanvasInputHost): void {
       return
     }
 
+    if (state.mode === "measure") {
+      const result = measureAddPoint(state.measure, [x, y, 0])
+      const status = document.getElementById("editorStatus")
+      if (status) {
+        status.textContent = formatMeasure(result)
+      }
+      host.draw()
+      return
+    }
+
     if (state.mode === "region") {
       if (e.shiftKey && state.selection.kind === "region") {
         host.beforeEdit()
@@ -172,14 +183,24 @@ export function bindCanvasInput(host: CanvasInputHost): void {
 
     const oi = pickObject(level, x, y, camera.scale)
     if (oi >= 0) {
-      host.beforeEdit()
-      state.selection = { 
-        kind: "object", 
-        index: oi 
+      if (e.shiftKey) {
+        const set = new Set(state.selectedObjects)
+        if (set.has(oi)) set.delete(oi)
+        else set.add(oi)
+        state.selectedObjects = [...set]
+        state.selection = { kind: "object", index: oi }
+        host.refreshUi()
+        return
       }
+      host.beforeEdit()
+      state.selection = {
+        kind: "object",
+        index: oi,
+      }
+      state.selectedObjects = [oi]
       state.drag = {
-        kind: "object", 
-        index: oi 
+        kind: "object",
+        index: oi,
       }
       host.refreshUi()
       return

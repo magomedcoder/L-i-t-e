@@ -69,3 +69,38 @@ After the first campaign clear, a harder mode (`difficulty`) unlocks: more damag
 - WebGL2, procedural textures, shadows, bloom, anti-aliasing
 - Resolution scales to the screen
 - On FPS drops, quality may automatically reduce
+
+## Map editor (2D + 3D)
+
+Open via **Editor** in the menu. Uses the same campaign JSON (`regions` / `objects` / `player`).
+
+### View modes
+| Mode      | Description                      |
+| --------- | -------------------------------- |
+| **2D**    | Top-down plan                    |
+| **Split** | 2D and 3D side by side (default) |
+| **3D**    | WebGL preview only               |
+
+### 3D camera
+| Action             | Control                   |
+| ------------------ | ------------------------- |
+| Orbit              | Alt + LMB or middle mouse |
+| Fly look           | RMB + mouse               |
+| Fly move           | WASD / QE while flying    |
+| Zoom               | Wheel                     |
+| Focus selection    | `F`                       |
+| Hotkey cheat sheet | `?`                       |
+
+### Tools
+- Modes: Select, Region, Object, Player, Measure (`1`-`5`)
+- Primitives: box room, corridor, ramp
+- Extrude (`E`), merge, split edge, snap vertices
+- Multi-select objects with Shift+click; align / distribute / snap
+- **Play from here**: test with spawn at the 3D camera
+- Outliner, texture browser, camera bookmarks, level notes/tags
+- Section plane (Z) + ghost mode for multi-floor layouts
+- Drafts in `localStorage` + recovery panel
+- Validation: heights, goal/door pairs, overlaps, reachability; click an issue to focus
+
+### Files
+Drafts autosave in the browser. For the game: **Download JSON** / **Apply to game** into `maps/`.

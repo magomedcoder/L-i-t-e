@@ -17,15 +17,15 @@ export type LevelObject = {
   x: number
   y: number
   z?: number
-  /** Orientation in radians (doors, flashlight, etc.). */
   theta?: number
-  /** Links goal ↔ door; falls back to theta in legacy maps. */
   pairId?: number
   count?: number
 }
 
 export type LevelData = {
   name?: string
+  notes?: string
+  tags?: string[]
   player?: {
     x: number
     y: number

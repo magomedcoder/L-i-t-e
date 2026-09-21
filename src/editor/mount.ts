@@ -1,4 +1,4 @@
-import { clearCampaignDraft, fetchCampaignFile, loadEditorCampaign, rememberSelectedMapId, saveCampaignDraft } from "../map/catalog"
+import { clearCampaignDraft, fetchCampaignFile, loadEditorCampaign, rememberSelectedMapId } from "../map/catalog"
 import type { MapEntry } from "../map/catalog"
 import { type Campaign, parseCampaignText } from "../map/levelFormat"
 import { t, onLocaleChange } from "../i18n"
@@ -9,13 +9,14 @@ import { emptyLevel } from "./helpers"
 import { createHistory } from "./history"
 import { getLevelBounds } from "./bounds"
 import { drawMinimap, minimapWorldFromEvent } from "./minimap"
-import { clearSelection, createEditorState, currentLevel, editorSnapshot, type EditorState } from "./editorState"
+import { clearSelection, createEditorState, currentLevel, editorSnapshot, markPreviewDirty, type EditorState } from "./editorState"
+import { focusSelection3d } from "./preview/input3d"
+import { saveDraftWithStamp, wireAdvancedEditor, type AdvancedMountApi } from "./wireAdvanced"
+import type { FocusTarget } from "./validateExtra"
 import { bindCanvasInput, cursorWorld, fitCameraToLevel, panCameraToWorld, setEditorMode } from "./input"
 import { applyObjectProps, applyPlayerProps, applyRegionProps, syncPropsFromSelection, type PropertiesHost } from "./properties"
 import type { EditorDom } from "./ui"
 import { DEFAULT_GRID_STEP } from "./types"
-import { analyzeLevel } from "./validate"
-
 const PAIR_PRESETS_DEG = [0, 90, 180, 270]
 
 export function mountEditor(
@@ -29,6 +30,7 @@ export function mountEditor(
   let editRecorded = false
   const history = createHistory()
   const lastPan = { x: 0, y: 0 }
+  let advanced!: AdvancedMountApi
 
   const {
     canvas,
@@ -104,26 +106,57 @@ export function mountEditor(
     onObjectChange: () => {
       refreshValidation()
       markDirty()
+      markPreviewDirty(state)
       draw()
     },
     onPlayerChange: () => {
       refreshValidation()
       markDirty()
+      markPreviewDirty(state)
       draw()
     },
     onRegionChange: () => {
       markDirty()
+      markPreviewDirty(state)
       refreshEntityLists()
       draw()
     },
+  }
+
+  const applyIssueFocus = (focus: FocusTarget) => {
+    if (focus.kind === "region") {
+      state.selection = { kind: "region", index: focus.index }
+      state.selectedObjects = []
+    } else if (focus.kind === "object") {
+      state.selection = { kind: "object", index: focus.index }
+      state.selectedObjects = [focus.index]
+    } else if (focus.kind === "player") {
+      state.selection = { kind: "player" }
+      state.selectedObjects = []
+    } else {
+      clearSelection(state)
+    }
+
+    syncPropsFromSelection(propsHost)
+    if (advanced?.preview) {
+      focusSelection3d(state, advanced.preview)
+    }
+    refreshEntityLists()
+    draw()
   }
 
   const syncViewControls = () => {
     layerRegionsEl.checked = state.viewState.layers.regions
     layerObjectsEl.checked = state.viewState.layers.objects
     layerPlayerEl.checked = state.viewState.layers.player
+    dom.layerGridEl.checked = state.viewState.layers.grid
+    dom.layerHelpersEl.checked = state.viewState.layers.helpers
     objectFilterEl.value = state.viewState.objectFilter
     gridStepEl.value = String(state.viewState.gridStep)
+    dom.ghostModeEl.checked = state.viewState.ghostMode
+    dom.sectionZEl.value = state.viewState.sectionZ != null ? String(state.viewState.sectionZ) : ""
+    dom.showLinksEl.checked = state.viewState.showLinks
+    dom.showAxisEl.checked = state.viewState.showAxis
   }
 
   const drawMinimapPanel = () => {
@@ -170,6 +203,11 @@ export function mountEditor(
     })
     ctx2d.restore()
     drawMinimapPanel()
+    if (state.previewNeedsRebuild) {
+      advanced?.scheduleRebuild()
+    } else if (advanced?.preview) {
+      dom.fpsStatusEl.textContent = `${advanced.preview.fps} fps`
+    }
   }
 
   const resize = () => {
@@ -177,17 +215,25 @@ export function mountEditor(
     canvas.height = view.clientHeight * devicePixelRatio
     ctx2d.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
     draw()
+    advanced?.onResize()
   }
 
   const refreshValidation = () => {
     const label = currentLevel(state).name || t("level.numbered", { n: state.levelIndex + 1 })
-    const result = analyzeLevel(currentLevel(state), label)
+    if (!advanced) {
+      return
+    }
+    const result = advanced.analyzeExtended(currentLevel(state), label)
     state.markers = result.markers
     validateListEl.replaceChildren(
       ...result.issues.map((issue) => {
         const li = document.createElement("li")
         li.className = issue.level
         li.textContent = issue.message
+        li.style.cursor = issue.focus.kind === "none" ? "" : "pointer"
+        if (issue.focus.kind !== "none") {
+          li.onclick = () => applyIssueFocus(issue.focus)
+        }
         return li
       }),
     )
@@ -244,7 +290,7 @@ export function mountEditor(
 
   const beforeEdit = () => {
     if (!editRecorded) {
-      history.push(state.campaign, state.levelIndex, state.selection)
+      history.push(state.campaign, state.levelIndex, state.selection, state.selectedObjects)
       editRecorded = true
     }
   }
@@ -252,12 +298,16 @@ export function mountEditor(
   const afterEdit = () => {
     editRecorded = false
     markDirty()
+    markPreviewDirty(state)
+    advanced?.scheduleRebuild()
   }
 
   const applySnapshot = (snap: ReturnType<typeof editorSnapshot>) => {
     state.campaign = structuredClone(snap.campaign)
     state.levelIndex = snap.levelIndex
     state.selection = structuredClone(snap.selection)
+    state.selectedObjects = [...(snap.selectedObjects || [])]
+    markPreviewDirty(state)
   }
 
   const refreshUi = () => {
@@ -265,6 +315,8 @@ export function mountEditor(
     campaignAuthorEl.value = state.campaign.author || ""
     campaignDifficultyEl.value = String(state.campaign.difficulty ?? 1)
     levelNameEl.value = currentLevel(state).name || ""
+    dom.levelNotesEl.value = currentLevel(state).notes || ""
+    dom.levelTagsEl.value = (currentLevel(state).tags || []).join(", ")
     levelListEl.replaceChildren(
       ...state.campaign.levels.map((l, i) => {
         const b = document.createElement("button")
@@ -284,6 +336,9 @@ export function mountEditor(
     syncViewControls()
     refreshEntityLists()
     refreshValidation()
+    advanced?.refreshOutliner()
+    advanced?.refreshBookmarks()
+    advanced?.refreshThumbs()
     draw()
   }
 
@@ -315,35 +370,66 @@ export function mountEditor(
   }
 
   const copySelection = () => {
+    const lvl = currentLevel(state)
+    if (state.selectedObjects.length > 1) {
+      state.clipboard = {
+        kind: "objects",
+        data: state.selectedObjects.map((i) => structuredClone(lvl.objects[i])),
+      }
+      return
+    }
+
     if (state.selection.kind === "object") {
       state.clipboard = {
         kind: "object",
-        data: structuredClone(currentLevel(state).objects[state.selection.index]),
+        data: structuredClone(lvl.objects[state.selection.index]),
       }
     } else if (state.selection.kind === "region") {
       state.clipboard = {
         kind: "region",
-        data: structuredClone(currentLevel(state).regions[state.selection.index]),
+        data: structuredClone(lvl.regions[state.selection.index]),
       }
     }
   }
 
   const pasteClipboard = () => {
-    if (!state.clipboard) {
+    const clip = state.clipboard
+    if (!clip) {
       return
     }
+
     beforeEdit()
-    if (state.clipboard.kind === "object") {
-      const obj = structuredClone(state.clipboard.data)
+    const lvl = currentLevel(state)
+    if (clip.kind === "object") {
+      const obj = structuredClone(clip.data)
       obj.x += 8
       obj.y += 8
-      currentLevel(state).objects.push(obj)
-      state.selection = { kind: "object", index: currentLevel(state).objects.length - 1 }
-    } else {
-      const region = structuredClone(state.clipboard.data)
+      lvl.objects.push(obj)
+      state.selection = { kind: "object", index: lvl.objects.length - 1 }
+      state.selectedObjects = [state.selection.index]
+    } else if (clip.kind === "region") {
+      const region = structuredClone(clip.data)
       region.vertices = region.vertices.map(([x, y]) => [x + 8, y + 8] as [number, number])
-      currentLevel(state).regions.push(region)
-      state.selection = { kind: "region", index: currentLevel(state).regions.length - 1 }
+      lvl.regions.push(region)
+      state.selection = {
+        kind: "region",
+        index: lvl.regions.length - 1
+      }
+      state.selectedObjects = []
+    } else if (clip.kind === "objects") {
+      const newIndices: number[] = []
+      for (const src of clip.data) {
+        const obj = structuredClone(src)
+        obj.x += 8
+        obj.y += 8
+        lvl.objects.push(obj)
+        newIndices.push(lvl.objects.length - 1)
+      }
+      state.selectedObjects = newIndices
+      state.selection = {
+        kind: "object",
+        index: newIndices[newIndices.length - 1]!
+      }
     }
     afterEdit()
     refreshUi()
@@ -419,7 +505,7 @@ export function mountEditor(
     state.campaign.author = campaignAuthorEl.value.trim() || undefined
     state.campaign.difficulty = Number(campaignDifficultyEl.value) || undefined
     currentLevel(state).name = levelNameEl.value || currentLevel(state).name
-    saveCampaignDraft(state.mapId, state.campaign)
+    saveDraftWithStamp(state.mapId, state.campaign)
     state.dirty = false
     updateDirtyUi(autosave)
   }
@@ -499,6 +585,9 @@ export function mountEditor(
 
   const onDelLevel = () => {
     if (state.campaign.levels.length <= 1) {
+      return
+    }
+    if (!confirm(t("confirm.deleteLevel"))) {
       return
     }
     beforeEdit()
@@ -615,6 +704,7 @@ export function mountEditor(
   mapSelectEl.addEventListener("change", onMapSelectChange)
   fitLevelBtn.addEventListener("click", () => {
     fitCameraToLevel(canvas, state.camera, currentLevel(state))
+    markPreviewDirty(state)
     draw()
   })
   testLevelBtn.addEventListener("click", () => options.onTest?.(getTestCampaign(false)))
@@ -623,19 +713,23 @@ export function mountEditor(
 
   layerRegionsEl.addEventListener("change", () => {
     state.viewState.layers.regions = layerRegionsEl.checked
+    markPreviewDirty(state)
     draw()
   })
   layerObjectsEl.addEventListener("change", () => {
     state.viewState.layers.objects = layerObjectsEl.checked
+    markPreviewDirty(state)
     draw()
   })
   layerPlayerEl.addEventListener("change", () => {
     state.viewState.layers.player = layerPlayerEl.checked
+    markPreviewDirty(state)
     draw()
   })
   objectFilterEl.addEventListener("change", () => {
     state.viewState.objectFilter = objectFilterEl.value as typeof state.viewState.objectFilter
     refreshEntityLists()
+    markPreviewDirty(state)
     draw()
   })
   gridStepEl.addEventListener("change", () => {
@@ -677,7 +771,42 @@ export function mountEditor(
   playerYEl.addEventListener("input", () => applyPlayerProps(propsHost))
   playerZEl.addEventListener("input", () => applyPlayerProps(propsHost))
 
+  advanced = wireAdvancedEditor({
+    dom,
+    state,
+    catalogMaps: () => catalogMaps,
+    setCatalogMaps: (maps) => {
+      catalogMaps = maps
+    },
+    beforeEdit,
+    afterEdit,
+    markDirty,
+    refreshUi,
+    draw2d: draw,
+    persist,
+    reload,
+    fillMapSelect: fillEditorMapSelect,
+    onTest: (campaign) => options.onTest?.(campaign),
+    syncPropsFromSelection: () => syncPropsFromSelection(propsHost),
+  })
+
+  dom.playFromHereBtn.addEventListener("click", () => {
+    options.onTest?.(advanced.getPlayFromHereCampaign())
+  })
+
   onLocaleChange(() => refreshUi())
 
-  return { reload, fillMapSelect: fillEditorMapSelect, resize, getTestCampaign }
+  return {
+    reload,
+    fillMapSelect: fillEditorMapSelect,
+    resize,
+    getTestCampaign,
+    isDirty: () => state.dirty,
+    confirmLeave: () => {
+      if (!state.dirty) {
+        return true
+      }
+      return confirm(t("confirm.unsavedLeave"))
+    },
+  }
 }
