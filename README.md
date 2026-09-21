@@ -9,6 +9,7 @@ First-person web shooter.
 | Capture mouse / start         | Click the game screen (Pointer Lock) |
 | Look around                   | Mouse                                |
 | Forward / back / left / right | `W` `A` `S` `D`                      |
+| Jump                          | `Space`                              |
 | Shoot                         | LMB (hold)                           |
 | Release mouse capture         | `Esc` (browser default)              |
 

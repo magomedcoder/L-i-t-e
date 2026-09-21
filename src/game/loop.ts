@@ -11,7 +11,7 @@ import { setupMap } from "../map/map"
 import { setGameHooks } from "./hooks"
 import { tryShoot } from "./combat"
 import { setupInput } from "./input"
-import { clipAgainstWalls, collectMoveDirs } from "./movement"
+import { clipAgainstWalls, collectMoveDirs, applyVerticalMotion } from "./movement"
 
 export function mainRun(): void {
   setupGraphics()
@@ -45,6 +45,8 @@ export function reset(): void {
   ctx.playerDead = false
   ctx.lightIsHeld = false
   ctx.goingBack = false
+  ctx.jumpVelocity = 0
+  ctx.jumpHeld = false
   ctx.lights = []
   ctx.objects = []
   ctx.walls = []
@@ -138,8 +140,8 @@ export function gameStep(now: number): void {
 
   clipAgainstWalls(currentPos)
 
+  applyVerticalMotion(dt)
   const fall_rate = ctx.map.getFloorHeight(ctx.camera.position) + 10 - ctx.camera.position.z
-  ctx.camera.position.z += clamp((fall_rate * dt) / 30, -2, 3)
   ctx.cameraShake = clamp(ctx.cameraShake - fall_rate * 0.15 * +(fall_rate < 0) - 0.1, 0, 4)
 
   if (ctx.lightIsHeld) {

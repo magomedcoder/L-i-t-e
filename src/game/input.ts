@@ -7,14 +7,19 @@ export function bindKey(e: KeyboardEvent): string {
     KeyW: "w",
     KeyA: "a",
     KeyS: "s",
-    KeyD: "d"
+    KeyD: "d",
+    Space: " ",
   } as Record<string, string>)[e.code] || e.key.toLowerCase())
 }
 
 export function setupInput(): void {
   const glCanvas = ctx.gl.canvas as HTMLCanvasElement
   window.addEventListener("keydown", (e) => {
-    ctx.keys[bindKey(e)] = true
+    const key = bindKey(e)
+    ctx.keys[key] = true
+    if (key === " " && document.pointerLockElement) {
+      e.preventDefault()
+    }
   })
   window.addEventListener("keyup", (e) => {
     delete ctx.keys[bindKey(e)]

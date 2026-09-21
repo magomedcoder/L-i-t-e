@@ -1,8 +1,15 @@
 import { detectCollisionPositions, Wall } from "../entities"
 import { matrixRotateXy, matVectorProduct } from "../math/matrix"
-import { range } from "../math/helpers"
+import { clamp, range } from "../math/helpers"
 import { newVector, type Vector, X_DIR, Y_DIR, Z_DIR } from "../math/vector"
 import { ctx } from "../state"
+
+const EYE = 10
+const JUMP_SPEED = 0.42
+const GRAVITY = 0.00135
+const TERMINAL = 1.2
+const HEADROOM = 4
+const GROUND_EPS = 1.2
 
 export function collectMoveDirs(dt: number): Vector[] {
   const moveDirs: Vector[] = []
@@ -31,4 +38,46 @@ export function clipAgainstWalls(currentPos: Vector): void {
       ctx.camera.position.z = currentPos.z
     })
   })
+}
+
+export function applyVerticalMotion(dt: number): void {
+  const floorZ = ctx.map.getFloorHeight(ctx.camera.position)
+  const eyeTarget = floorZ + EYE
+  const wantJump = !!ctx.keys[" "]
+  const onGround = ctx.camera.position.z <= eyeTarget + GROUND_EPS && ctx.jumpVelocity <= 0.02
+
+  if (wantJump && !ctx.jumpHeld && onGround) {
+    ctx.jumpVelocity = JUMP_SPEED
+  }
+  
+  ctx.jumpHeld = wantJump
+
+  const airborne = !onGround || ctx.jumpVelocity > 0.02
+  if (airborne) {
+    ctx.jumpVelocity -= GRAVITY * dt
+    if (ctx.jumpVelocity < -TERMINAL) {
+      ctx.jumpVelocity = -TERMINAL
+    }
+    ctx.camera.position.z += ctx.jumpVelocity * dt
+
+    if (ctx.camera.position.z < eyeTarget) {
+      ctx.camera.position.z = eyeTarget
+      ctx.jumpVelocity = 0
+    }
+
+    const region = ctx.map.getRegionAt(ctx.camera.position)
+    if (region) {
+      const maxZ = region.ceilHeight - HEADROOM
+      if (ctx.camera.position.z > maxZ) {
+        ctx.camera.position.z = maxZ
+        if (ctx.jumpVelocity > 0) {
+          ctx.jumpVelocity = 0
+        }
+      }
+    }
+  } else {
+    const fallRate = eyeTarget - ctx.camera.position.z
+    ctx.camera.position.z += clamp((fallRate * dt) / 30, -2, 3)
+    ctx.jumpVelocity = 0
+  }
 }

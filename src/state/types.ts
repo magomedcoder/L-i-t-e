@@ -38,6 +38,8 @@ export interface SessionState {
   moved: number
   lastGunshot: number
   speed: number
+  jumpVelocity: number
+  jumpHeld: boolean
   playerDead: number | false
   health: number
   goingBack: boolean

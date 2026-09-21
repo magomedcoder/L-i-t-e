@@ -27,6 +27,8 @@ export const ctx: GameContext = {
   moved: 0,
   lastGunshot: 0,
   speed: 0,
+  jumpVelocity: 0,
+  jumpHeld: false,
   globalScreenColor: [0, 0, 0, 1],
   playerDead: false,
   health: 5,
