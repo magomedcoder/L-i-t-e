@@ -1,5 +1,6 @@
 import { el } from "./ui/el"
 import { t } from "./i18n"
+import { createMobileControls } from "./game/mobileControls"
 
 export const loadProgress = el("span", { id: "loadProgress" }, "0%")
 export const titleEl = el(
@@ -17,10 +18,11 @@ export const healthBar = el(
 )
 export const hudRoot = el("div", { id: "hud" }, titleEl)
 export const canvas = el("canvas", { id: "gameCanvas" })
+export const mobileControls = createMobileControls()
 export const backToEditorBtn = el("button", {
   id: "backToEditor",
   className: "back-to-editor",
   hidden: true,
   dataset: { i18n: "menu.backEditor" },
 }, t("menu.backEditor"))
-export const gameScreen = el("div", { id: "screen-game", className: "screen" }, canvas, hudRoot, healthBar, backToEditorBtn)
+export const gameScreen = el("div", { id: "screen-game", className: "screen" }, canvas, hudRoot, healthBar, mobileControls, backToEditorBtn)

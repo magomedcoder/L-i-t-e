@@ -6,6 +6,7 @@ import { play } from "../audio/audio"
 import { healthBar, hudRoot } from "../dom"
 import { ctx } from "../state"
 import { getGameHooks } from "../game/hooks"
+import { prefersTouchControls, setMobileControlsVisible } from "../game/mobileControls"
 import { LockedDoor } from "./hitbox"
 import { makeCube, makeCylinder, pallet, sphere } from "./meshes"
 import { appendTitleLines, fadeTo, setTitleLines } from "./hud"
@@ -163,6 +164,7 @@ export class RealDoor extends Collectable {
       hudRoot.style.top = "50%"
       hudRoot.style.left = "50%"
       hudRoot.style.transform = "translate(-50%, -50%)"
+      setMobileControlsVisible(false)
       setTimeout(() => {
         ctx.endScreen = true
         document.exitPointerLock()
@@ -188,6 +190,7 @@ export class RealDoor extends Collectable {
             hooks.reset()
             ctx.map.levels = [...ctx.map.allLevels]
             ctx.map.loadLevel()
+            setMobileControlsVisible(prefersTouchControls())
             requestAnimationFrame(hooks.gameStep)
           }, 5000)
         }

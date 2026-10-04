@@ -1,5 +1,6 @@
 import "./styles.css"
 import { canvas, backToEditorBtn, gameScreen } from "./dom"
+import { prefersTouchControls, setMobileControlsVisible } from "./game/mobileControls"
 import { applyEditorI18n, createEditorScreen } from "./editor/ui"
 import { mountEditor } from "./editor/mount"
 import { applyMenuI18n, createMenuScreen } from "./ui/menu"
@@ -69,6 +70,7 @@ function show(screen: Screen): void {
   ;(Object.keys(screens) as Screen[]).forEach((name) => {
     screens[name].classList.toggle("active", name === screen)
   })
+  setMobileControlsVisible(screen === "game" && prefersTouchControls())
   updateTitle()
 }
 
