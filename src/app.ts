@@ -10,7 +10,7 @@ import { gameStep, mainRun, registerGameRuntime, reset, setResolution } from "./
 import { fadeTo } from "./entities"
 import { setupMap } from "./map/map"
 import { getPreferredMapId, loadCampaignById, loadCatalog, rememberSelectedMapId, setActiveCampaign } from "./map/catalog"
-import { type Campaign, parseCampaignText } from "./map/levelFormat"
+import { type Campaign } from "./map/levelFormat"
 import { context as audioContext } from "./audio/audio"
 import { applyI18n, initLocale, onLocaleChange, t } from "./i18n"
 
@@ -47,7 +47,6 @@ editorApi = mountEditor(editor, {
 const menu = createMenuScreen({
   onPlay: () => void startGameSession(),
   onEditor: () => void openEditor(),
-  onPickFile: () => menu.fileInput.click(),
 })
 
 document.body.replaceChildren(menu.root, gameScreen, editor.root)
@@ -139,25 +138,6 @@ async function startGameSession(campaignOverride?: Campaign): Promise<void> {
   gameStep(1)
   menu.statusEl.textContent = ""
 }
-
-menu.fileInput.addEventListener("change", async () => {
-  const file = menu.fileInput.files?.[0]
-  menu.fileInput.value = ""
-  if (!file) {
-    return
-  }
-
-  try {
-    const campaign = parseCampaignText(await file.text())
-    setActiveCampaign(campaign)
-    menu.statusEl.textContent = t("status.fileLoaded", {
-      name: file.name
-    })
-    await startGameSession(campaign)
-  } catch (err) {
-    alert(String(err))
-  }
-})
 
 menu.mapSelect.addEventListener("change", () => {
   rememberSelectedMapId(menu.mapSelect.value)

@@ -720,7 +720,7 @@ export function wireAdvancedEditor(host: AdvancedHost): AdvancedMountApi {
     deleteMapDraft(state.mapId)
     const maps = mergeCatalogWithCustom(host.catalogMaps().filter((m) => m.id !== state.mapId))
     host.setCatalogMaps(maps)
-    const next = maps[0]?.id || "default"
+    const next = maps[0]?.id || "classic"
     host.fillMapSelect(maps, next)
     void host.reload(next)
   })

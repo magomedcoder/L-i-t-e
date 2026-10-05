@@ -42,7 +42,7 @@ export type EditorState = {
   keys: Set<string>
 }
 
-export function createEditorState(mapId = "default"): EditorState {
+export function createEditorState(mapId = "classic"): EditorState {
   return {
     mapId,
     campaign: {

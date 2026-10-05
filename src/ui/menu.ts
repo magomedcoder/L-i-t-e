@@ -6,13 +6,11 @@ type MenuDom = {
   mapSelect: HTMLSelectElement
   localeSelect: HTMLSelectElement
   statusEl: HTMLElement
-  fileInput: HTMLInputElement
 }
 
 export function createMenuScreen(handlers: {
   onPlay: () => void
   onEditor: () => void
-  onPickFile: () => void
 }): MenuDom {
   const mapSelect = el("select", {
     id: "mapSelect",
@@ -32,11 +30,6 @@ export function createMenuScreen(handlers: {
   const statusEl = el("p", {
     className: "menu-status",
   }, "")
-  const fileInput = el("input", {
-    type: "file",
-    accept: "application/json,.json",
-    hidden: true,
-  }) as HTMLInputElement
 
   const root = el("div", { id: "screen-menu", className: "screen active" },
     el("div", { className: "menu" },
@@ -48,14 +41,16 @@ export function createMenuScreen(handlers: {
       statusEl,
       el("div", { className: "menu-actions" },
         button(t("menu.play"), { className: "primary", id: "btnPlay", dataset: { i18n: "menu.play" } }, handlers.onPlay),
-        button(t("menu.editor"), { id: "btnEditor", dataset: { i18n: "menu.editor" } }, handlers.onEditor),
-        button(t("menu.loadFile"), { id: "btnLoadMap", dataset: { i18n: "menu.loadFile" } }, handlers.onPickFile),
       ),
-      fileInput,
     ),
+    button(t("menu.editor"), {
+      className: "menu-editor-btn",
+      id: "btnEditor",
+      dataset: { i18n: "menu.editor" },
+    }, handlers.onEditor),
   )
 
-  const menu = { root, mapSelect, localeSelect, statusEl, fileInput }
+  const menu = { root, mapSelect, localeSelect, statusEl }
   localeSelect.addEventListener("change", () => {
     setLocale(localeSelect.value as Locale)
     applyMenuI18n(menu)

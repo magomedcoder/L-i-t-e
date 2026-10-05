@@ -62,7 +62,7 @@ export function getPreferredMapId(): string {
     return saved
   }
 
-  return catalog[0]?.id || "default"
+  return catalog[0]?.id || "classic"
 }
 
 export function rememberSelectedMapId(mapId: string): void {

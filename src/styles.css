@@ -42,9 +42,30 @@ body.touch-ui {
 }
 
 #screen-menu.active {
+  position: relative;
   display: grid;
   place-items: center;
   background: #111;
+  color: #c8c8c8;
+}
+
+.menu-editor-btn {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  border: 0;
+  background: transparent;
+  color: #6e6e6e;
+  border-radius: 0;
+  padding: 8px 4px;
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.menu-editor-btn:hover {
   color: #c8c8c8;
 }
 
@@ -79,10 +100,17 @@ body.touch-ui {
   padding: 9px 10px;
   border-radius: 0;
   border: 1px solid #2f2f2f;
-  background: transparent;
+  background: #161616;
   color: #c8c8c8;
   font: inherit;
   font-size: 13px;
+  color-scheme: dark;
+}
+
+.map-select option,
+.locale-select option {
+  background: #161616;
+  color: #c8c8c8;
 }
 
 .map-select:focus,
