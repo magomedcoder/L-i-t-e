@@ -3,16 +3,19 @@ import { canvas, backToEditorBtn, gameScreen } from "./dom"
 import { prefersTouchControls, setMobileControlsVisible } from "./game/mobileControls"
 import { applyEditorI18n, createEditorScreen } from "./editor/ui"
 import { mountEditor } from "./editor/mount"
-import { applyMenuI18n, createMenuScreen } from "./ui/menu"
+import { applyMenuI18n, applyMpStatus, createMenuScreen } from "./ui/menu"
 import { fillMapSelect } from "./ui/maps"
 import { ctx } from "./state"
 import { gameStep, mainRun, registerGameRuntime, reset, setResolution } from "./game/loop"
 import { fadeTo } from "./entities"
+import { newVector } from "./math/vector"
 import { setupMap } from "./map/map"
 import { getPreferredMapId, loadCampaignById, loadCatalog, rememberSelectedMapId, setActiveCampaign } from "./map/catalog"
 import { type Campaign } from "./map/levelFormat"
 import { context as audioContext } from "./audio/audio"
 import { applyI18n, initLocale, onLocaleChange, t } from "./i18n"
+import { mpSession } from "./net/session"
+import { clearRemotePlayers } from "./net/remotePlayer"
 
 initLocale()
 
@@ -47,6 +50,39 @@ editorApi = mountEditor(editor, {
 const menu = createMenuScreen({
   onPlay: () => void startGameSession(),
   onEditor: () => void openEditor(),
+  onCreateRoom: () => {
+    void mpSession.createRoom(selectedMapId()).catch((err) => {
+      menu.statusEl.textContent = String(err)
+    })
+  },
+  onJoinRoom: (code) => {
+    if (!code) {
+      return
+    }
+
+    void mpSession.joinRoom(code, selectedMapId()).catch((err) => {
+      menu.statusEl.textContent = String(err)
+    })
+  },
+  onLeaveRoom: () => {
+    mpSession.disconnect()
+    clearRemotePlayers()
+  },
+})
+
+mpSession.subscribe({
+  onChange: (snap) => applyMpStatus(menu, snap),
+  onStartGame: (mapId) => {
+    if (currentScreen === "game") {
+      return
+    }
+    
+    if (mapId && menu.mapSelect.querySelector(`option[value="${mapId}"]`)) {
+      menu.mapSelect.value = mapId
+      rememberSelectedMapId(mapId)
+    }
+    void startGameSession()
+  },
 })
 
 document.body.replaceChildren(menu.root, gameScreen, editor.root)
@@ -54,6 +90,7 @@ applyI18n()
 onLocaleChange(() => {
   updateTitle()
   applyMenuI18n(menu)
+  applyMpStatus(menu, mpSession.snapshot)
   applyEditorI18n(editor)
   applyI18n()
 })
@@ -98,6 +135,9 @@ async function startGameSession(campaignOverride?: Campaign): Promise<void> {
     } else {
       const id = selectedMapId()
       await loadCampaignById(id)
+      if (mpSession.ready) {
+        mpSession.requestStart(id)
+      }
     }
   } catch (err) {
     menu.statusEl.textContent = String(err)
@@ -127,16 +167,26 @@ async function startGameSession(campaignOverride?: Campaign): Promise<void> {
     ctx.endScreen = false
     gameInited = true
     mainRun()
+    offsetGuestSpawn()
     menu.statusEl.textContent = ""
     return
   }
 
   ctx.endScreen = false
+  clearRemotePlayers()
   reset()
   setupMap()
+  offsetGuestSpawn()
   fadeTo([0, 0, 0, 0])
   gameStep(1)
   menu.statusEl.textContent = ""
+}
+
+function offsetGuestSpawn(): void {
+  if (mpSession.snapshot.role !== "guest" || !ctx.camera) {
+    return
+  }
+  ctx.camera.position = ctx.camera.position.add(newVector(18, 12, 0))
 }
 
 menu.mapSelect.addEventListener("change", () => {
@@ -176,6 +226,18 @@ async function boot(): Promise<void> {
     menu.statusEl.textContent = String(err)
   }
   show("menu")
+  applyMpStatus(menu, mpSession.snapshot)
+
+  const params = new URLSearchParams(location.search)
+  const room = params.get("room")
+  if (room) {
+    menu.roomInput.value = room.toUpperCase()
+    void mpSession.joinRoom(room, selectedMapId()).catch((err) => {
+      menu.statusEl.textContent = String(err)
+    })
+  } else {
+    void mpSession.tryRestore(selectedMapId())
+  }
 }
 
 void boot()

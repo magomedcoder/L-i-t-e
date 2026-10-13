@@ -12,6 +12,7 @@ import { setGameHooks } from "./hooks"
 import { tryShoot } from "./combat"
 import { setupInput } from "./input"
 import { syncMobileKeys } from "./mobileControls"
+import { syncMultiplayerPose } from "../net/sync"
 import { clipAgainstWalls, collectMoveDirs, applyVerticalMotion } from "./movement"
 
 export function mainRun(): void {
@@ -114,6 +115,7 @@ export function gameStep(now: number): void {
 
   const dt = Math.min(now - ctx.lastNow, 50)
   syncMobileKeys()
+  syncMultiplayerPose(now)
   const move_dir = collectMoveDirs(dt)
   const screen_forward_dir = multiply(
     matrixRotateXy(-ctx.camera.theta),

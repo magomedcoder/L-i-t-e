@@ -143,6 +143,98 @@ body.touch-ui {
   gap: 6px;
 }
 
+.mp-panel {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+.mp-status {
+  margin: 0 0 8px;
+  min-height: 1.1rem;
+  font-size: 12px;
+  color: #7a7a7a;
+}
+
+.mp-room-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 1.25rem;
+  margin-bottom: 8px;
+}
+
+.mp-room-code {
+  font-size: 18px;
+  letter-spacing: 0.28em;
+  color: #e8e8e8;
+  font-weight: 600;
+}
+
+.mp-share-link {
+  color: #6e6e6e;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mp-share-link:hover {
+  color: #c8c8c8;
+}
+
+.mp-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.mp-join-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+
+.room-input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #2f2f2f;
+  background: #161616;
+  color: #c8c8c8;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color-scheme: dark;
+}
+
+.room-input:focus {
+  outline: none;
+  border-color: #5a5a5a;
+}
+
+.mp-actions button,
+.mp-leave {
+  border: 1px solid #2f2f2f;
+  background: transparent;
+  color: #b0b0b0;
+  border-radius: 0;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mp-actions button:hover:not(:disabled),
+.mp-leave:hover {
+  border-color: #4a4a4a;
+  color: #e4e4e4;
+  background: #1c1c1c;
+}
+
+.mp-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .menu-actions button {
   border: 1px solid #2f2f2f;
   background: transparent;
