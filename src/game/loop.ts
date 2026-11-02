@@ -13,6 +13,7 @@ import { tryShoot } from "./combat"
 import { setupInput } from "./input"
 import { syncMobileKeys } from "./mobileControls"
 import { syncMultiplayerPose } from "../net/sync"
+import { clearGuestCollectRequests, mpActive, mpSendDeath, mpSendRespawn } from "../net/authority"
 import { clipAgainstWalls, collectMoveDirs, applyVerticalMotion } from "./movement"
 
 export function mainRun(): void {
@@ -192,10 +193,28 @@ export function gameStep(now: number): void {
   ctx.realCamera(ctx.camera._texture)
 
   if (ctx.health < 0 && !ctx.playerDead) {
+    mpSendDeath()
     setTimeout(() => {
+      if (mpActive()) {
+        ctx.health = 5
+        ctx.playerDead = false
+        ctx.jumpVelocity = 0
+        ctx.jumpHeld = false
+        updateHealth(0)
+        fadeTo([0, 0, 0, 0])
+        const spawn = ctx.map?.levels[0]?.player
+        if (spawn && ctx.camera) {
+          ctx.camera.position = newVector(spawn.x, spawn.y, spawn.z ?? 10)
+          mpSendRespawn(spawn.x, spawn.y, spawn.z ?? 10, ctx.health)
+        }
+
+        return
+      }
+      
       setResolution(-1)
       ctx.health = 5
       reset()
+      clearGuestCollectRequests()
       if (ctx.difficulty) {
         ctx.map.levels = [...ctx.map.allLevels]
       }

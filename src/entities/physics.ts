@@ -234,5 +234,8 @@ export function userHit(where: Vector): void {
     ctx.cameraShake++
     fadeTo([0.3, 0, 0, 0.7])
     updateHealth(-1)
+    void import("../net/authority").then(({ mpSendHurt }) => {
+      mpSendHurt(ctx.health)
+    })
   }
 }

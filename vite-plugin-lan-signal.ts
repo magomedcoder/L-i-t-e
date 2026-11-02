@@ -20,10 +20,9 @@ type SignalMsg = {
 const PATH = "/__lan_signal"
 
 function roomCode(): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
   let out = ""
   for (let i = 0; i < 4; i++) {
-    out += alphabet[(Math.random() * alphabet.length) | 0]
+    out += String((Math.random() * 10) | 0)
   }
   
   return out

@@ -1,7 +1,7 @@
 import { SignalingClient } from "./signaling"
 import { GamePeer } from "./peer"
 import { clearRemotePlayers, pruneStaleRemotes, removeRemotePlayer, upsertRemotePlayer } from "./remotePlayer"
-import type { NetMsg, NetRole, SessionSnapshot, SessionStatus } from "./types"
+import type { NetMsg, NetRole, PoseMsg, SessionSnapshot, SessionStatus } from "./types"
 
 const STORAGE_KEY = "lite_mp_session"
 
@@ -35,6 +35,10 @@ function saveStored(data: StoredSession | null): void {
     return
   }
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+}
+
+async function gameplay() {
+  return import("./gameplay")
 }
 
 class MultiplayerSession {
@@ -72,6 +76,12 @@ class MultiplayerSession {
     this.listeners = listeners
   }
 
+  send(msg: NetMsg): void {
+    if (this.ready) {
+      this.peer.send(msg)
+    }
+  }
+
   async createRoom(mapId: string, preferredRoom?: string): Promise<void> {
     this.intentionalClose = false
     this.mapId = mapId
@@ -97,7 +107,6 @@ class MultiplayerSession {
     if (!stored) {
       return false
     }
-
     this.peerId = stored.peerId
     this.mapId = mapId
     try {
@@ -106,7 +115,6 @@ class MultiplayerSession {
       } else {
         await this.joinRoom(stored.room, mapId)
       }
-
       return true
     } catch {
       this.setError("reconnect-failed")
@@ -130,22 +138,19 @@ class MultiplayerSession {
 
   requestStart(mapId: string): void {
     this.mapId = mapId
-    if (this.ready) {
-      this.peer.send({ type: "start", mapId })
-    }
+    this.send({ type: "start", mapId })
   }
 
-  tickPose(now: number, x: number, y: number, z: number, yaw: number, pitch: number): void {
+  tickPose(pose: Omit<PoseMsg, "type" | "id">): void {
     if (!this.ready) {
       return
     }
-
+    const now = performance.now()
     if (now - this.lastPoseAt < 50) {
       return
     }
-
     this.lastPoseAt = now
-    this.peer.send({ type: "pose", id: this.peerId, x, y, z, yaw, pitch })
+    this.send({ type: "pose", id: this.peerId, ...pose })
     pruneStaleRemotes()
   }
 
@@ -182,7 +187,7 @@ class MultiplayerSession {
       onSignal: (payload) => {
         void this.peer.handleSignal(payload)
       },
-      onError: (reason) => this.setError(reason),
+      onError: (reason: string) => this.setError(reason),
       onClose: () => {
         if (!this.intentionalClose && this.room) {
           this.scheduleReconnect()
@@ -194,7 +199,7 @@ class MultiplayerSession {
   private peerHandlers() {
     return {
       onOpen: () => {
-        this.peer.send({ 
+        this.send({ 
           type: "hello", 
           id: this.peerId, 
           mapId: this.mapId || undefined 
@@ -221,7 +226,7 @@ class MultiplayerSession {
 
     if (msg.type === "pose") {
       this.remoteId = msg.id
-      upsertRemotePlayer(msg.id, msg.x, msg.y, msg.z, msg.yaw, msg.pitch)
+      upsertRemotePlayer( msg.id, msg.x, msg.y, msg.z, msg.yaw, msg.pitch, !!msg.jump, !!msg.fire, msg.health ?? 5)
       return
     }
 
@@ -234,7 +239,26 @@ class MultiplayerSession {
 
     if (msg.type === "start") {
       this.listeners.onStartGame?.(msg.mapId)
+      return
     }
+
+    void gameplay().then((gp) => {
+      if (msg.type === "shoot") {
+        gp.applyRemoteShoot(msg)
+      } else if (msg.type === "hurt") {
+        gp.applyRemoteHurt(msg.id, msg.health)
+      } else if (msg.type === "death") {
+        gp.applyRemoteDeath(msg.id)
+      } else if (msg.type === "respawn") {
+        gp.applyRemoteRespawn(msg.id, msg.x, msg.y, msg.z, msg.health)
+      } else if (msg.type === "collect") {
+        gp.applyNetworkCollect(msg)
+      } else if (msg.type === "collect-req") {
+        gp.hostHandleCollectReq(msg.kind, msg.uid, msg.x, msg.y, msg.z)
+      } else if (msg.type === "level") {
+        gp.applyNetworkLevel(msg)
+      }
+    })
   }
 
   private scheduleReconnect(): void {
@@ -271,7 +295,6 @@ class MultiplayerSession {
     if (status !== "error") {
       this.error = null
     }
-    
     this.emit()
   }
 

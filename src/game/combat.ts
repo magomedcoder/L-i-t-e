@@ -3,15 +3,17 @@ import { detectCollisionPositions, Flash, Hit, LightFlash, Shell } from "../enti
 import { range } from "../math/helpers"
 import { newVector, urandomVector, type Vector } from "../math/vector"
 import { ctx } from "../state"
+import { mpSendShoot } from "../net/authority"
 
 export function tryShoot(now: number, screenForward: Vector, screenRight: Vector): void {
   ctx.cameraShake += 0.15 * +(ctx.cameraShake < 1.5)
   if (now - ctx.lastGunshot > 100) {
     ctx.lastGunshot = now
     play(ctx.sounds.gun)
+    const aim = screenForward.scalarMultiply(1e4).add(urandomVector().scalarMultiply(320 * ctx.cameraShake))
     const hits = detectCollisionPositions(
       ctx.camera.position,
-      ctx.camera.position.add(screenForward.scalarMultiply(1e4)).add(urandomVector().scalarMultiply(320 * ctx.cameraShake)),
+      ctx.camera.position.add(aim),
       true,
     )
 
@@ -27,6 +29,8 @@ export function tryShoot(now: number, screenForward: Vector, screenRight: Vector
     ctx.objects.push(new Flash(ctx.chaingun.position, screenForward, distanceToHit))
     ctx.objects.push(new Shell(ctx.chaingun.position, screenRight))
     ctx.chaingun.recoil = newVector(0, -0.2, 0)
+    const o = ctx.camera.position
+    mpSendShoot(o.x, o.y, o.z, screenForward.x, screenForward.y, screenForward.z)
   }
   ctx.camera.position = ctx.camera.position.subtract(screenForward.scalarMultiply(0.1))
   ctx.speed *= 0.8

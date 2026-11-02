@@ -47,7 +47,9 @@ export function createMenuScreen(handlers: {
     className: "room-input",
     type: "text",
     maxlength: 4,
-    placeholder: "ABCD",
+    inputmode: "numeric",
+    pattern: "[0-9]*",
+    placeholder: "1234",
     autocomplete: "off",
     spellcheck: false,
   }) as HTMLInputElement

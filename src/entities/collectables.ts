@@ -30,6 +30,7 @@ export class Flashlight extends Collectable {
 
     super(position, sprites)
     this.collect_dist = 15
+    this.mpKind = "flashlight"
     this.sprite = sprites
     sprites[0].position = this.position
     sprites[1].position = this.position.add(matVectorProduct(rot, Z_DIR.scalarMultiply(5.8)))
@@ -84,6 +85,8 @@ export class Goal extends Collectable {
     super(position, sprite)
     this.collect_dist = 15
     this.uid = pairId
+    this.mpKind = "goal"
+    this.mpUid = pairId
   }
 
   update(dt: number): void {
@@ -94,12 +97,16 @@ export class Goal extends Collectable {
 
   collect(): void {
     const exitdoors = ctx.objects.filter((x) => x instanceof LockedDoor && this.uid == x.uid) as LockedDoor[]
-    exitdoors[0].parent_obj!.dead = true
+    if (exitdoors[0]?.parent_obj) {
+      exitdoors[0].parent_obj.dead = true
+    }
 
     if (this.uid == Math.PI / 2) {
       play(ctx.sounds.clock)
       fadeTo([1, 1, 1, 1])
-      ctx.objects.push(new RealDoor(exitdoors[0].position.subtract(newVector(0, 40, -10))))
+      if (exitdoors[0]) {
+        ctx.objects.push(new RealDoor(exitdoors[0].position.subtract(newVector(0, 40, -10))))
+      }
       ctx.map.spawnObjects(
         ctx.map.remake.filter((obj) => isEnemyType(obj.type)),
         ctx.objects,
@@ -132,6 +139,7 @@ export class RealDoor extends Collectable {
         [10, 10, 10],
       ),
     )
+    this.mpKind = "exit"
     ctx.lights[2].position = position.add(newVector(0, -20, 0))
     ctx.lights[2].shadow_camera.theta = 0
     ctx.lights[2].shadow = true
@@ -154,6 +162,7 @@ export class RealDoor extends Collectable {
     if (ctx.map.levels.length > 1) {
       ctx.keys = {}
       setTimeout(() => {
+        void import("../net/authority").then(({ clearGuestCollectRequests }) => clearGuestCollectRequests())
         hooks.setResolution(-1)
         hooks.reset()
         ctx.map.levels.shift()
